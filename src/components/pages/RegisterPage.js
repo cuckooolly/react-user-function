@@ -7,14 +7,17 @@ import Button from "../Button";
 import Link from "next/link";
 import HorizontalRule from "../HorizontalRule";
 import styles from "./RegisterPage.module.css";
+import {useRouter} from "next/navigation";
 
 function RegisterPage() {
+  const router = useRouter();
   const [values, setValues] = useState({
     name: "",
     email: "",
     password: "",
     passwordRepeat: "",
   });
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   function handleChange(e) {
@@ -27,14 +30,24 @@ function RegisterPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    e.target.querySelector('button').disabled = true;
-    e.target.querySelector('button').innerText = "회원가입 중...";
 
     const { name, email, password, passwordRepeat } = values;
+    if (!name || !email || !password || !passwordRepeat) {
+        alert("모든 항목을 입력해주세요.");
+        return;
+    }
+
+    if (password !== passwordRepeat) {
+        alert("비밀번호가 일치하지 않습니다.");
+        return;
+    }
 
     // TODO: 회원가입 처리
     // 1. fetch 를 사용하여 회원가입 요청을 보냅니다.
-    const res = await fetch("https://learn.codeit.kr/api/link-service/users", {
+    try{
+      // 3. 로딩 상태를 만들고 로딩중일 때는 회원가입 버튼을 비활성화 합니다.
+      setLoading(true);
+      const res = await fetch("https://learn.codeit.kr/api/link-service/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -45,28 +58,19 @@ function RegisterPage() {
           'password': password,
           'avatar': ""
         }),
-    });
+      });
+      // 2. 성공 시 응답 데이터를 확인합니다.
+      alert('회원 가입 성공!');
+      console.log(res);
+      router.push('/login');
 
-    // 5. 에러 상태를 만들고 회원가입 요청이 실패 시 에러 메시지를 회원가입버튼 바로 위에 표시합니다.
-    if (!res.ok) {
-      setError('회원가입에 실패했습니다. 다시 시도해주세요.');
-      e.target.querySelector('button').disabled = false;
-      e.target.querySelector('button').innerText = "회원가입";
-      return;
+      // 4. 추가로 로딩중일 때는 회원가입 버튼텍스트를 "회원가입 중..."으로 변경합니다.
+    } catch (err) {
+      // 5. 에러 상태를 만들고 회원가입 요청이 실패 시 에러 메시지를 회원가입버튼 바로 위에 표시합니다.
+      setError(err.message || "회원가입에 실패했습니다");
+    } finally {
+      setLoading(false);
     }
-
-    // 2. 성공 시 응답 데이터를 확인합니다.
-    const data = await res.json();
-    alert('회원가입 성공!');
-    console.log(data);
-
-
-    // 3. 로딩 상태를 만들고 로딩중일 때는 회원가입 버튼을 비활성화 합니다.
-    e.target.querySelector('button').disabled = false;
-
-    // 4. 추가로 로딩중일 때는 회원가입 버튼텍스트를 "회원가입 중..."으로 변경합니다.
-    e.target.querySelector('button').innerText = "회원가입";
-
   }
 
   return (
@@ -133,7 +137,7 @@ function RegisterPage() {
           onChange={handleChange}
         />
         {error && <div>{error}</div>}
-        <Button className={styles.Button} onSubmit={handleSubmit}>회원가입</Button>
+        <Button className={styles.Button} disabled={loading}>{loading ? "회원 가입 중..." : "회원 가입"}</Button>
         <div>
           이미 회원이신가요? <Link href="/login">로그인하기</Link>
         </div>
